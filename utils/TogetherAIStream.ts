@@ -21,6 +21,10 @@ export interface TogetherAIStreamPayload {
 export async function TogetherAIStream(payload: TogetherAIStreamPayload) {
   const encoder = new TextEncoder();
   const decoder = new TextDecoder();
+  let togetherBaseUrl = "https://api.together.xyz/v1/chat/completions";
+  if (process.env.TOGETHER_BASE_URL) {
+    togetherBaseUrl = `${process.env.TOGETHER_BASE_URL ?? ""}/chat/completions`;
+  }
 
   let res;
 
@@ -35,7 +39,7 @@ export async function TogetherAIStream(payload: TogetherAIStreamPayload) {
       body: JSON.stringify(payload),
     });
   } else {
-    res = await fetch("https://api.together.xyz/v1/chat/completions", {
+    res = await fetch(togetherBaseUrl, {
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${process.env.TOGETHER_API_KEY ?? ""}`,
