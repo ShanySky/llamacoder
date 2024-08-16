@@ -78,12 +78,27 @@ export default function Home() {
     if (!data) {
       return;
     }
+    // 新增变量用于缓存文本
+    let cachedText = "";
+    // 新增定时器变量
+    let timeoutId: NodeJS.Timeout | null = null;
+
     const onParse = (event: ParsedEvent | ReconnectInterval) => {
       if (event.type === "event") {
         const data = event.data;
         try {
           const text = JSON.parse(data).text ?? "";
-          setGeneratedCode((prev) => prev + text);
+          // 先缓存文本
+          cachedText += text;
+
+          // 每隔1秒更新一次generatedCode
+          if (!timeoutId) {
+            timeoutId = setTimeout(() => {
+              setGeneratedCode((prev) => prev + cachedText);
+              cachedText = "";
+              timeoutId = null;
+            }, 10);
+          }
         } catch (e) {
           console.error(e);
         }
@@ -146,12 +161,27 @@ export default function Home() {
     if (!data) {
       return;
     }
+    // 新增变量用于缓存文本
+    let cachedText = "";
+    // 新增定时器变量
+    let timeoutId: NodeJS.Timeout | null = null;
+
     const onParse = (event: ParsedEvent | ReconnectInterval) => {
       if (event.type === "event") {
         const data = event.data;
         try {
           const text = JSON.parse(data).text ?? "";
-          setGeneratedCode((prev) => prev + text);
+          // 先缓存文本
+          cachedText += text; 
+
+          // 每隔1秒更新一次generatedCode
+          if (!timeoutId) {
+            timeoutId = setTimeout(() => {
+              setGeneratedCode((prev) => prev + cachedText); 
+              cachedText = "";
+              timeoutId = null;
+            }, 10);
+          }
         } catch (e) {
           console.error(e);
         }
@@ -239,7 +269,7 @@ export default function Home() {
                 <p className="text-gray-500 sm:text-xs">Model:</p>
                 <Select.Root
                   name="model"
-                  defaultValue="meta-llama/Meta-Llama-3.1-70B-Instruct"
+                  defaultValue="deepseek-coder"
                   disabled={loading}
                 >
                   <Select.Trigger className="group flex w-60 max-w-xs items-center rounded-2xl border-[6px] border-gray-300 bg-white px-4 py-2 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500">
@@ -271,6 +301,14 @@ export default function Home() {
                             label: "Groq Llama 3.1 70B",
                             value:
                               "llama-3.1-70b-versatile",
+                          },
+                          {
+                            label: "Groq Llama 3 8B",
+                            value: "llama3-8b-8192",
+                          },
+                          {
+                            label: "Groq Llama 3 70B",
+                            value: "llama3-70b-8192",
                           },
                           {
                             label: "deepseek-coder",
