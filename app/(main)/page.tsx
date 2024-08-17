@@ -22,6 +22,42 @@ import { toast, Toaster } from "sonner";
 import LoadingDots from "../../components/loading-dots";
 import { shareApp } from "./actions";
 
+class CodeParserBuilder {
+  private cachedCode: string = "";
+  private delaySetCode: number;
+  private timeoutSetCode: NodeJS.Timeout | null = null;
+  private setGeneratedCode: React.Dispatch<React.SetStateAction<string>>;
+
+  constructor(setGeneratedCode: React.Dispatch<React.SetStateAction<string>>, delay: number = 10) {
+    this.setGeneratedCode = setGeneratedCode;
+    this.delaySetCode = delay;
+  }
+
+  private onParse(event: ParsedEvent | ReconnectInterval) {
+    if (event.type === "event") {
+      const data = event.data;
+      try {
+        const text = JSON.parse(data).text ?? "";
+        this.cachedCode += text;
+
+        if (!this.timeoutSetCode) {
+          this.timeoutSetCode = setTimeout(() => {
+            this.setGeneratedCode((prev) => prev + this.cachedCode);
+            this.cachedCode = "";
+            this.timeoutSetCode = null;
+          }, this.delaySetCode);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+  }
+
+  public createParser() {
+    return createParser(this.onParse.bind(this));
+  }
+}
+
 export default function Home() {
   let [status, setStatus] = useState<
     "initial" | "creating" | "created" | "updating" | "updated"
@@ -38,6 +74,8 @@ export default function Home() {
   let [isPublishing, setIsPublishing] = useState(false);
 
   let loading = status === "creating" || status === "updating";
+
+  const codeParser = new CodeParserBuilder(setGeneratedCode, 10).createParser();
 
   async function generateCode(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -78,44 +116,17 @@ export default function Home() {
     if (!data) {
       return;
     }
-    // 新增变量用于缓存文本
-    let cachedText = "";
-    // 新增定时器变量
-    let timeoutId: NodeJS.Timeout | null = null;
-
-    const onParse = (event: ParsedEvent | ReconnectInterval) => {
-      if (event.type === "event") {
-        const data = event.data;
-        try {
-          const text = JSON.parse(data).text ?? "";
-          // 先缓存文本
-          cachedText += text;
-
-          // 每隔1秒更新一次generatedCode
-          if (!timeoutId) {
-            timeoutId = setTimeout(() => {
-              setGeneratedCode((prev) => prev + cachedText);
-              cachedText = "";
-              timeoutId = null;
-            }, 10);
-          }
-        } catch (e) {
-          console.error(e);
-        }
-      }
-    };
 
     // https://web.dev/streams/#the-getreader-and-read-methods
     const reader = data.getReader();
     const decoder = new TextDecoder();
-    const parser = createParser(onParse);
     let done = false;
 
     while (!done) {
       const { value, done: doneReading } = await reader.read();
       done = doneReading;
       const chunkValue = decoder.decode(value);
-      parser.feed(chunkValue);
+      codeParser.feed(chunkValue);
     }
 
     newMessages = [
@@ -161,44 +172,17 @@ export default function Home() {
     if (!data) {
       return;
     }
-    // 新增变量用于缓存文本
-    let cachedText = "";
-    // 新增定时器变量
-    let timeoutId: NodeJS.Timeout | null = null;
-
-    const onParse = (event: ParsedEvent | ReconnectInterval) => {
-      if (event.type === "event") {
-        const data = event.data;
-        try {
-          const text = JSON.parse(data).text ?? "";
-          // 先缓存文本
-          cachedText += text; 
-
-          // 每隔1秒更新一次generatedCode
-          if (!timeoutId) {
-            timeoutId = setTimeout(() => {
-              setGeneratedCode((prev) => prev + cachedText); 
-              cachedText = "";
-              timeoutId = null;
-            }, 10);
-          }
-        } catch (e) {
-          console.error(e);
-        }
-      }
-    };
 
     // https://web.dev/streams/#the-getreader-and-read-methods
     const reader = data.getReader();
     const decoder = new TextDecoder();
-    const parser = createParser(onParse);
     let done = false;
 
     while (!done) {
       const { value, done: doneReading } = await reader.read();
       done = doneReading;
       const chunkValue = decoder.decode(value);
-      parser.feed(chunkValue);
+      codeParser.feed(chunkValue);
     }
 
     newMessages = [
